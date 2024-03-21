@@ -23,11 +23,13 @@ Please send enquiries to Shin'ichiro Ando (s.ando@uva.nl). We have checked that 
 
 ## References
 
-When you use the outcome of this package for your scientific output, please cite the following publication.
+When you use the outcome of this package for your scientific output, please cite the following publications.
 
 - S. Ando, S. Horigome, E. O. Nadler, D. Yang, and H.-B. Yu, [https://arxiv.org/abs/xxxx.xxxx]
+- D. Yang, E. O. Nadler, H.-B. Yu, and Y.-M. Zhong [https://arxiv.org/abs/2305.16176]
 
-Note this is one of the variants of SASHIMI, which is based on its CDM version [https://github.com/shinichiroando/sashimi-c]
+
+Note this is one of the variants of SASHIMI, which is based on its original version for CDM [https://github.com/shinichiroando/sashimi-c]
 
 
 ## Examples
@@ -57,16 +59,16 @@ M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z =
     redshift, then turn 'M0_at_redshift' parameter on (see below).
         
 (Optional) redshift:       Redshift of interest. (default: 0)
-(Optional) dz:             Grid of redshift of halo accretion. (default 0.1)
-(Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 7.)
-(Optional) N_ma:           Number of logarithmic grid of subhalo mass at accretion defined as M_{200}).
+(Optional) dz:             Grid of redshift of halo accretion. (default 0.01)
+(Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 5.0)
+(Optional) N_ma:           Number of logarithmic grid of subhalo mass at accretion defined as M_{200}.
                            (default: 500)
 (Optional) sigmalogc:      rms scatter of concentration parameter defined for log_{10}(c).
                            (default: 0.128)
 (Optional) N_herm:         Number of grid in Gauss-Hermite quadrature for integral over concentration.
-                           (default: 5)
-(Optional) logmamin:       Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun)). 
-                           (default: -6)
+                           (default: 20)
+(Optional) logmamin:       Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun). 
+                           (default: 6)
 (Optional) logmamax:       Maximum value of subhalo mass at accretion defined as log_{10}(m_{max}/Msun).
                            If None, m_{max}=0.1*M0. (default: None)
 (Optional) N_hermNa:       Number of grid in Gauss-Hermite quadrature for integral over host evoluation, 
@@ -74,8 +76,6 @@ M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z =
 (Optional) Na_model:       Model number of EPS defined in Yang et al. (2011). (default: 3)
 (Optional) ct_th:          Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
                            be completely desrupted. Suggested values: 0.77 or 0 (no desruption; default).
-(Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
-                           mass loss. (default: True)
 (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         
 ------
