@@ -1,4 +1,5 @@
 # Semi-Analytical SubHalo Inference ModelIng for Self-Interacting Dark Matter (SASHIMI-SIDM)
+[![arXiv](https://img.shields.io/badge/arXiv-2305.16176%20-green.svg)](https://arxiv.org/abs/2305.16176)
 
 The codes allow to calculate various subhalo properties efficiently using semi-analytical models for self-interacting dark matter (SIDM). The results are well in agreement with those from numerical N-body simulations.
 
