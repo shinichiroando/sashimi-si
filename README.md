@@ -25,7 +25,7 @@ Please send enquiries to Shin'ichiro Ando (s.ando@uva.nl). We have checked that 
 
 When you use the outcome of this package for your scientific output, please cite the following publications.
 
-- S. Ando, S. Horigome, E. O. Nadler, D. Yang, and H.-B. Yu, [https://arxiv.org/abs/xxxx.xxxx]
+- S. Ando, S. Horigome, E. O. Nadler, D. Yang, and H.-B. Yu, [https://arxiv.org/abs/2403.16633]
 - D. Yang, E. O. Nadler, H.-B. Yu, and Y.-M. Zhong [https://arxiv.org/abs/2305.16176]
 
 
