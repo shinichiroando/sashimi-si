@@ -792,7 +792,8 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         self.lookback_time = interp1d(_zmax,t_L)
         z_dummy            = np.linspace(redshift,1000,10000)
         self.t_U           = integrate.simps(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy)
-        
+        del z_dummy
+
         zdist         = np.arange(redshift+dz,zmax+dz,dz)
         if logmamax==None:
             logmamax  = np.log10(0.1*M0/self.Msun)
