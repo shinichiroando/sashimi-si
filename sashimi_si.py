@@ -994,7 +994,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         weightCDM    = Na/(1.+zdist.reshape(-1,1))
         weightCDM    = weightCDM/np.sum(weightCDM)*Na_total
         weightCDM    = np.expand_dims(weightCDM,axis=1)*(w1.reshape(-1,1))/np.sqrt(np.pi)
-        weightCDM    = weightCDM[accretion.any(axis=1)]*surviveCDM  # select only accreted subhalos
+        weightCDM    = weightCDM[accretion.any(axis=1)]*surviveCDM*np.expand_dims(accretion[accretion.any(axis=1)],axis=1)  # consider only the redshifts where at least one subhalo accretes
         weightSIDM   = weightCDM*surviveSIDM
         z_acc        = (zdist_accreted.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
         z_acc        = z_acc.reshape(-1)
