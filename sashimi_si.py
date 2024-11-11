@@ -854,6 +854,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             ma200_matrix[iz] = ma200
             ma_matrix[iz]    = ma
             accretion[iz]    = z_f>za  # accrertion.shape = (len(zdist),len(ma200_z0)) = (n_z,N_ma)
+        del m200_ba, z_ba, ma200, ma
         zdist_accreted = zdist[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
         ma200_matrix_accreted = ma200_matrix[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
 
@@ -915,6 +916,13 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
 
 
         for iz, za in tqdm.tqdm(enumerate(zdist_accreted),total=len(zdist_accreted),desc='Calculating subhalo properties'):
+            # Before accretion (ba) onto the host
+            z_ba    = np.linspace(z_f,za,100)
+            m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
+            # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
+            ma200            = m200_ba[-1]
+            ma               = self.Mvir_from_M200_fit(ma200,za)
+            
             c200_med_ba = self.conc200(m200_ba,z_ba)  # shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
             r200_ba      = (3.*m200_ba/(4.*np.pi*self.rhocrit0*self.g(z_ba)*200.))**(1./3.)
             x1,w1        = hermgauss(N_herm)
