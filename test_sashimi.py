@@ -12,16 +12,18 @@ class TestSashimi(unittest.TestCase):
         'M0': 1.e12, 
         'redshift': 0., 
         'M0_at_redshift': True, 
-        'dz': 0.1, 
+        'dz': 0.01, 
         'N_herm': 20, 
         'zmax': 5., 
         'logmamin': 6, 
-        'N_ma': 50
+        'N_ma': 500
     }
 
     SASHMI_OUT_NAMES = names = ['ma200', 'z_acc', 'rsCDM_acc', 'rhosCDM_acc', 'rmaxCDM_acc', 'VmaxCDM_acc', 'rsSIDM_acc', 'rhosSIDM_acc', 'rcSIDM_acc', 'rmaxSIDM_acc', 'VmaxSIDM_acc', 'm_z0', 'rsCDM_z0', 'rhosCDM_z0', 'rmaxCDM_z0', 'VmaxCDM_z0', 'rsSIDM_z0', 'rhosSIDM_z0', 'rcSIDM_z0', 'rmaxSIDM_z0', 'VmaxSIDM_z0', 'ctCDM_z0', 'tt_ratio', 'weightCDM', 'weightSIDM', 'surviveCDM', 'surviveSIDM']
 
     COMMIT_ORIGINAL = "24d9895106640375eb74401da27a2a1ebed098ab"
+
+    DIR = "log"
 
     def setUp(self) -> None:
         # get current branch by git branch --show-current
@@ -49,7 +51,10 @@ class TestSashimi(unittest.TestCase):
         Returns:
             np.ndarray: sashimi output. shape=(N_parameters, N_simulations)
         """
-        file = f"sashimi_output_{name}.npy"
+        # create directory if not exists
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        file = f"{self.DIR}/sashimi_output_{name}.npy"
         # check if the file exists and run the sashimi if not exists
         if not os.path.exists(file):
             if name == "local":
@@ -58,7 +63,8 @@ class TestSashimi(unittest.TestCase):
                 self.name = self.COMMIT_ORIGINAL if name == 'original' else name
                 cmd = f'git checkout {self.name}'
                 print(f'{cmd}')
-                os.system(cmd)
+                status_code = os.system(cmd)
+                assert status_code == 0, f"failed to checkout to the branch {name}"
             print(f'reloading sashimi_si({name}')
             importlib.reload(sashimi_si)
             # save sashimi output
