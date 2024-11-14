@@ -28,6 +28,9 @@ class TestSashimi(unittest.TestCase):
     def setUp(self) -> None:
         # get current branch by git branch --show-current
         self.branch_before_test = subprocess.check_output("git branch --show-current", shell=True).decode("utf-8").strip()
+                # create directory if not exists
+        if not os.path.exists(self.DIR):
+            os.makedirs(self.DIR)
         # get the original sashimi output
         self.get_sashimi_output('original')
         return super().setUp()
@@ -51,9 +54,6 @@ class TestSashimi(unittest.TestCase):
         Returns:
             np.ndarray: sashimi output. shape=(N_parameters, N_simulations)
         """
-        # create directory if not exists
-        if not os.path.exists(dir):
-            os.makedirs(dir)
         file = f"{self.DIR}/sashimi_output_{name}.npy"
         # check if the file exists and run the sashimi if not exists
         if not os.path.exists(file):
