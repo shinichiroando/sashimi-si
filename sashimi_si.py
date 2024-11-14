@@ -841,26 +841,17 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         # NOTE: For the integral approach, we take the formation time tf to be half of t_U-t_f.
         # ref: Sec.5 of Yang et al. (2023)
 
-        ma200_matrix   = np.zeros((len(zdist),len(ma200_z0)))
-        ma_matrix      = np.zeros_like(ma200_matrix)
-        accretion      = np.ones_like(ma200_matrix)
-
-        # Initilize ma200_matrix, ma_matrix, and accretion
-        for iz, za in tqdm.tqdm(enumerate(zdist),total=len(zdist),desc='Initialing arrays'):
-            # Before accretion (ba) onto the host
-            z_ba    = np.linspace(z_f,za,100)
-            m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
-            # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
-            ma200            = m200_ba[-1]
-            ma               = self.Mvir_from_M200_fit(ma200,za)
-            ma200_matrix[iz] = ma200
-            ma_matrix[iz]    = ma
-            accretion[iz]    = z_f>za  # accrertion.shape = (len(zdist),len(ma200_z0)) = (n_z,N_ma)
-        del m200_ba, z_ba, ma200, ma
+        # Initialize the arrays
+        ma200_matrix     = self.Mzi(ma200_0,zdist[:,np.newaxis])  # ma200_matrix.shape = (n_z,N_ma)
+        ma_matrix        = self.Mvir_from_M200_fit(ma200_matrix,zdist[:,np.newaxis])  # ma_matrix.shape = (n_z,N_ma)
+        accretion        = z_f>zdist[:,np.newaxis]  # accretion.shape = (n_z,N_ma)
+        # Arrays for only the redshifts where at least one subhalo accretes
         zdist_accreted = zdist[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
         ma200_matrix_accreted = ma200_matrix[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
+        ma_matrix_accreted    = ma_matrix[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
 
         # Initialize the arrays
+        # NOTE: shape = (N_z, N_conc, N_ma)
         rsCDM_acc     = np.zeros((len(zdist_accreted),N_herm,len(ma200_z0)))
         rhosCDM_acc   = np.zeros_like(rsCDM_acc)
         rmaxCDM_acc   = np.zeros_like(rsCDM_acc)
@@ -922,8 +913,8 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             z_ba    = np.linspace(z_f,za,100)
             m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
             # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
-            ma200            = m200_ba[-1]
-            ma               = self.Mvir_from_M200_fit(ma200,za)
+            ma200            = ma200_matrix_accreted[iz]  # shape = (N_ma,)
+            ma               = ma_matrix_accreted[iz]  # shape = (N_ma,)
             
             c200_med_ba = self.conc200(m200_ba,z_ba)  # shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
             r200_ba      = (3.*m200_ba/(4.*np.pi*self.rhocrit0*self.g(z_ba)*200.))**(1./3.)
