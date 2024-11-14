@@ -101,6 +101,25 @@ class TestSashimi(unittest.TestCase):
         for name, _out1, _out2 in zip(self.SASHMI_OUT_NAMES, out1, out2):
             assert np.all(_out1 == _out2), f"output {name} is different between {name1} and {name2}"
 
+    def compare_outputs_allclose(self, name1, name2, rtol=1e-8):
+        """ compare two sashimi outputs using np.allclose.
+
+        Note that outputs have different shapes, so we only compare the values where weightCDM > 0.
+        
+        Args:
+            name1 (str): branch name or commit hash. 
+            name2 (str): branch name or commit hash. 
+
+        Returns:
+            self
+        """
+        idx_weight = self.SASHMI_OUT_NAMES.index('weightCDM')
+        out1 = self.get_sashimi_output(name1)
+        out2 = self.get_sashimi_output(name2)
+        out1 = out1[:, out1[idx_weight] > 0]
+        out2 = out2[:, out2[idx_weight] > 0]
+        for name, _out1, _out2 in zip(self.SASHMI_OUT_NAMES, out1, out2):
+            assert np.allclose(_out1, _out2, rtol, atol=0), f"output {name} is different between {name1} and {name2}"
 
     def test_memory_usage_reduction(self):
         self.compare_outputs('original', 'memory_usage_reduction')
@@ -108,8 +127,14 @@ class TestSashimi(unittest.TestCase):
     def test_parallelization(self):
         self.compare_outputs('original', 'parallelization')
 
+    def test_parallelization_allclose(self):
+        self.compare_outputs_allclose('original', 'parallelization')
+
     def test_local(self):
         self.compare_outputs('original', 'local')
+
+    def test_local_allclose(self):
+        self.compare_outputs_allclose('original', 'local')
 
     def test_main(self):
         self.compare_outputs('original', 'main')

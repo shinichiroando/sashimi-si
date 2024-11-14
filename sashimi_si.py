@@ -6,6 +6,7 @@ from scipy import special
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
 from numpy.polynomial.hermite import hermgauss
+import numexpr as ne
 import warnings
 import tqdm
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
@@ -407,6 +408,32 @@ class SIDM_parametric_model(SIDM_cross_section):
         return out
 
 
+    def dVmaxSIDMdtt_numexpr_optimized(self, tt, Vmax0):
+        """
+        Returns differential of Vmax obtained by Eq. (2.4) of Yang et al. (2023) using NumExpr for optimization.
+        This optimized version performs the entire calculation in a single evaluation for maximum speed.
+        
+        Parameters
+        ---
+        tt : np.ndarray
+            The time normalized by the collapse time.
+        Vmax0 : np.ndarray or float
+            The maximum circular velocity of the initial NFW profile.
+            
+        Returns
+        ---
+        out : np.ndarray
+            The differential of Vmax.
+        """
+        tt_th = self.tt_th
+        out = ne.evaluate(
+            "where(tt <= tt_th, (0.1777 - 13.197*tt*tt + 66.64*tt*tt*tt"
+            " - 94.35*tt*tt*tt*tt + 63.308*tt*tt*tt*tt*tt*tt"
+            " - 21.924*tt*tt*tt*tt*tt*tt*tt*tt) * Vmax0, 0)"
+        )
+        return out
+
+
     def drmaxSIDMdtt(self, tt, rmax0):
         """ Returns differential of rmax obtained by in Eq. (2.4) of Yang et al. (2023)
 
@@ -429,6 +456,32 @@ class SIDM_parametric_model(SIDM_cross_section):
         out = 0.007623-0.7200*(2.*tt)+0.3376*(3.*tt**2)-0.1375*(4.*tt**3)
         out = np.where(tt>self.tt_th,0.,out)
         out = rmax0*out
+        return out
+    
+
+    def drmaxSIDMdtt_numexpr_optimized(self, tt, rmax0):
+        """
+        Returns differential of rmax obtained by Eq. (2.4) of Yang et al. (2023) using NumExpr for optimization.
+        This optimized version performs the entire calculation in a single evaluation for maximum speed.
+        
+        Parameters
+        ---
+        tt : np.ndarray
+            The time normalized by the collapse time.
+        rmax0 : np.ndarray or float
+            The radius at which the maximum circular velocity is obtained.
+        tt_th : float
+            Threshold time.
+            
+        Returns
+        ---
+        out : np.ndarray
+            The differential of rmax.
+        """
+        tt_th = self.tt_th
+        out = ne.evaluate(
+            "where(tt <= tt_th, (0.007623 - 1.44*tt + 1.0128*tt*tt - 0.55*tt*tt*tt) * rmax0, 0)"
+        )
         return out
 
 
@@ -554,10 +607,10 @@ class SIDM_parametric_model(SIDM_cross_section):
         """
         t_c         = self.t_collapse(self.sigma_eff_m(Vmax_CDM),rmax_CDM,Vmax_CDM)
         Vmax0       = np.expand_dims(Vmax_CDM[:,0],axis=1)
-        integrand   = self.dVmaxSIDMdtt((t-t_f)/t_c,Vmax0)/t_c
+        integrand   = self.dVmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,Vmax0)/t_c
         VmaxSIDM_z0 = Vmax_CDM[:,-1]+integrate.simps(integrand,x=t*np.ones((len(Vmax_CDM),1,1)),axis=1)
         rmax0       = np.expand_dims(rmax_CDM[:,0],axis=1)
-        integrand   = self.drmaxSIDMdtt((t-t_f)/t_c,rmax0)/t_c
+        integrand   = self.drmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,rmax0)/t_c
         rmaxSIDM_z0 = rmax_CDM[:,-1]+integrate.simps(integrand,x=t*np.ones((len(rmax_CDM),1,1)),axis=1)
         
         tt             = np.minimum(((t-t_f)/t_c)[:,-1],self.tt_th)
@@ -907,20 +960,19 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             t_c = 150/C/(sigma_eff_m*rhoeff*reff)/np.sqrt(4.*np.pi*self.G*rhoeff)
             return t_c
 
-
+        # For the concentration parameter
+        x1,w1        = hermgauss(N_herm)
+        x1           = x1.reshape(-1,1,1)
+        w1           = w1.reshape(-1,1,1)
         for iz, za in tqdm.tqdm(enumerate(zdist_accreted),total=len(zdist_accreted),desc='Calculating subhalo properties'):
             # Before accretion (ba) onto the host
             z_ba    = np.linspace(z_f,za,100)
             m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
             # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
-            ma200            = ma200_matrix_accreted[iz]  # shape = (N_ma,)
             ma               = ma_matrix_accreted[iz]  # shape = (N_ma,)
             
             c200_med_ba = self.conc200(m200_ba,z_ba)  # shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
             r200_ba      = (3.*m200_ba/(4.*np.pi*self.rhocrit0*self.g(z_ba)*200.))**(1./3.)
-            x1,w1        = hermgauss(N_herm)
-            x1           = x1.reshape(-1,1,1)
-            w1           = w1.reshape(-1,1,1)
             log10c200_ba = np.sqrt(2.)*sigmalogc*x1+np.log10(c200_med_ba)
             # log10c200_ba = np.random.normal(np.log10(c200_med_ba),sigmalogc,size=(1,len(z_ba),len(ma200_z0)))  # TODO
             # w1 = np.ones_like(log10c200_ba) / len(log10c200_ba)  # TODO
