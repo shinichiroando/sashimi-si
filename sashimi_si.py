@@ -890,9 +890,11 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
                 ma_0[i]    = fint_ma(ma_z0[i])
             
         z_f           = -0.0064*(np.log10(ma_0/self.Msun))**2+0.0237*np.log10(ma_0/self.Msun)+1.8837  # z_f.shape = (N_ma,)
-        t_f           = (self.t_U-self.lookback_time(z_f))/2.  # t_f.shape = (N_ma,)
+        t_f           = (self.t_U-self.lookback_time(z_f)) #/2.  # t_f.shape = (N_ma,)
         # NOTE: For the integral approach, we take the formation time tf to be half of t_U-t_f.
-        # ref: Sec.5 of Yang et al. (2023)
+        #       Ref: Sec. 5 of Yang et al. (2023)
+        # NOTE: For a more careful examination, this extra factor of 1/2 has been removed.
+        #       t-z relation must be made consistently throughout the paper.
 
         # Initialize the arrays
         ma200_matrix     = self.Mzi(ma200_0,zdist[:,np.newaxis])  # ma200_matrix.shape = (n_z,N_ma)
