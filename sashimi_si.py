@@ -649,6 +649,28 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
     
     def Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
         """ Returns Na, Eq. (3) of Yang et al. (2011) 
+
+        Parameters
+        ---
+        ma : float
+            The mass of the subhalo.
+        zacc : float
+            The accretion redshift of the subhalo.
+        Mhost : float
+            The mass of the host halo.
+        z0 : float
+            The redshift.
+        N_herm : int
+            The number of Hermite-Gauss quadrature points.
+        Nrand : int
+            The number of random numbers.
+        Na_model : int
+            The model to calculate Na. Default is 3.
+
+        Returns
+        ---
+        Na : float
+            The value of Na.
         
         References
         ---
@@ -792,30 +814,54 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         self.lookback_time = interp1d(_zmax,t_L)
         z_dummy            = np.linspace(redshift,1000,10000)
         self.t_U           = integrate.simps(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy)
-        
-        zdist         = np.arange(redshift+dz,zmax+dz,dz)
+        del z_dummy, _zmax, t_L
+
+        zdist         = np.arange(redshift+dz,zmax+dz,dz)  # zdist.shape = (n_z,)
         if logmamax==None:
             logmamax  = np.log10(0.1*M0/self.Msun)
-        ma200_z0      = np.logspace(logmamin,logmamax,N_ma)*self.Msun
-        ma_z0         = self.Mvir_from_M200_fit(ma200_z0,redshift)
+        ma200_z0      = np.logspace(logmamin,logmamax,N_ma)*self.Msun  # ma200_z0.shape = (N_ma,)
+        ma_z0         = self.Mvir_from_M200_fit(ma200_z0,redshift)  # ma_z0.shape = (N_ma,)
 
-        ma200_0            = np.empty_like(ma200_z0)
-        ma_0               = np.empty_like(ma_z0)
+        ma200_0            = np.empty_like(ma200_z0)  # ma200_0.shape = (N_ma,)
+        ma_0               = np.empty_like(ma_z0)   # ma_0.shape = (N_ma,)
         if redshift==0.:
             ma200_0        = ma200_z0
             ma_0           = ma_z0
         else:
-            ma200_0_list   = np.logspace(0.,2.,200)*(ma200_z0.reshape(-1,1))
-            ma_0_list      = np.logspace(0.,2.,200)*(ma_z0.reshape(-1,1))
+            ma200_0_list   = np.logspace(0.,2.,200)*(ma200_z0.reshape(-1,1))  # ma200_0_list.shape = (N_ma,200)
+            ma_0_list      = np.logspace(0.,2.,200)*(ma_z0.reshape(-1,1))  # ma_0_list.shape = (N_ma,200)
             for i in np.arange(len(ma200_z0)):
                 fint_ma200 = interp1d(self.Mzi(ma200_0_list[i],redshift),ma200_0_list[i])
                 fint_ma    = interp1d(self.Mzi(ma_0_list[i],redshift),ma_0_list[i])
                 ma200_0[i] = fint_ma200(ma200_z0[i])
                 ma_0[i]    = fint_ma(ma_z0[i])
+            
+        z_f           = -0.0064*(np.log10(ma_0/self.Msun))**2+0.0237*np.log10(ma_0/self.Msun)+1.8837  # z_f.shape = (N_ma,)
+        t_f           = (self.t_U-self.lookback_time(z_f))/2.  # t_f.shape = (N_ma,)
+        # NOTE: For the integral approach, we take the formation time tf to be half of t_U-t_f.
+        # ref: Sec.5 of Yang et al. (2023)
 
-        z_f           = -0.0064*(np.log10(ma_0/self.Msun))**2+0.0237*np.log10(ma_0/self.Msun)+1.8837
-        t_f           = (self.t_U-self.lookback_time(z_f))/2.
-        rsCDM_acc     = np.zeros((len(zdist),N_herm,len(ma200_z0)))
+        ma200_matrix   = np.zeros((len(zdist),len(ma200_z0)))
+        ma_matrix      = np.zeros_like(ma200_matrix)
+        accretion      = np.ones_like(ma200_matrix)
+
+        # Initilize ma200_matrix, ma_matrix, and accretion
+        for iz, za in tqdm.tqdm(enumerate(zdist),total=len(zdist),desc='Initialing arrays'):
+            # Before accretion (ba) onto the host
+            z_ba    = np.linspace(z_f,za,100)
+            m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
+            # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
+            ma200            = m200_ba[-1]
+            ma               = self.Mvir_from_M200_fit(ma200,za)
+            ma200_matrix[iz] = ma200
+            ma_matrix[iz]    = ma
+            accretion[iz]    = z_f>za  # accrertion.shape = (len(zdist),len(ma200_z0)) = (n_z,N_ma)
+        del m200_ba, z_ba, ma200, ma
+        zdist_accreted = zdist[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
+        ma200_matrix_accreted = ma200_matrix[accretion.any(axis=1)]  # consider only the redshifts where at least one subhalo accretes
+
+        # Initialize the arrays
+        rsCDM_acc     = np.zeros((len(zdist_accreted),N_herm,len(ma200_z0)))
         rhosCDM_acc   = np.zeros_like(rsCDM_acc)
         rmaxCDM_acc   = np.zeros_like(rsCDM_acc)
         VmaxCDM_acc   = np.zeros_like(rsCDM_acc)
@@ -838,10 +884,6 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         surviveCDM    = np.zeros_like(rsCDM_acc)
         surviveSIDM   = np.zeros_like(rsCDM_acc)
         m0CDM_matrix  = np.zeros_like(rsCDM_acc)
-
-        ma200_matrix   = np.zeros((len(zdist),len(ma200_z0)))
-        ma_matrix      = np.zeros_like(ma200_matrix)
-        accretion      = np.ones_like(ma200_matrix)
 
 
         def Mzvir(z):
@@ -875,20 +917,14 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             return t_c
 
 
-        for iz, za in tqdm.tqdm(enumerate(zdist),total=len(zdist)):
-
+        for iz, za in tqdm.tqdm(enumerate(zdist_accreted),total=len(zdist_accreted),desc='Calculating subhalo properties'):
             # Before accretion (ba) onto the host
             z_ba    = np.linspace(z_f,za,100)
-            m200_ba = self.Mzi(ma200_0,z_ba) # This is valid for redshift = 0. case for now
+            m200_ba = self.Mzi(ma200_0,z_ba)  # This is valid for redshift = 0. case for now
             # NOTE: m200_ba.shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
             ma200            = m200_ba[-1]
             ma               = self.Mvir_from_M200_fit(ma200,za)
-            ma200_matrix[iz] = ma200
-            ma_matrix[iz]    = ma
-
-            accretion[iz] = z_f>za
-            if np.all(accretion[iz]==0): continue
-
+            
             c200_med_ba = self.conc200(m200_ba,z_ba)  # shape = (len(z_ba),len(ma200_z0)) = (100,N_ma) = (100,500) (for default values)
             r200_ba      = (3.*m200_ba/(4.*np.pi*self.rhocrit0*self.g(z_ba)*200.))**(1./3.)
             x1,w1        = hermgauss(N_herm)
@@ -960,12 +996,12 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         weightCDM    = Na/(1.+zdist.reshape(-1,1))
         weightCDM    = weightCDM/np.sum(weightCDM)*Na_total
         weightCDM    = np.expand_dims(weightCDM,axis=1)*(w1.reshape(-1,1))/np.sqrt(np.pi)
-        weightCDM    = weightCDM*surviveCDM*np.expand_dims(accretion,axis=1)
+        weightCDM    = weightCDM[accretion.any(axis=1)]*surviveCDM*np.expand_dims(accretion[accretion.any(axis=1)],axis=1)  # consider only the redshifts where at least one subhalo accretes
         weightSIDM   = weightCDM*surviveSIDM
-        z_acc        = (zdist.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
+        z_acc        = (zdist_accreted.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
         z_acc        = z_acc.reshape(-1)
 
-        ma200         = np.expand_dims(ma200_matrix,axis=1)
+        ma200         = np.expand_dims(ma200_matrix_accreted,axis=1)
         ma200         = ma200*np.ones((N_herm,1))
         ma200         = ma200.reshape(-1)
         m_z0          = m0CDM_matrix.reshape(-1)
