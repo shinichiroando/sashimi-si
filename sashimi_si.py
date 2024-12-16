@@ -1369,14 +1369,14 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             M0_at_redshift=M0_at_redshift,
         )
         
-        def t_collapse(sigma_eff_m, rmax, Vmax):
-            """ Returns the collapse time of a subhalo according to Eq. (2.2) of Yang et al. (2023)
-            """
-            C = 0.75
-            reff   = rmax/2.1626  # NOTE: from the lines just after Eq. (1.1) of Yang et al. (2023)
-            rhoeff = (Vmax/(1.648*reff))**2/self.G  # NOTE: from the lines just after Eq. (1.1) of Yang et al. (2023)
-            t_c = 150/C/(sigma_eff_m*rhoeff*reff)/np.sqrt(4.*np.pi*self.G*rhoeff)
-            return t_c
+        # def t_collapse(sigma_eff_m, rmax, Vmax):
+        #     """ Returns the collapse time of a subhalo according to Eq. (2.2) of Yang et al. (2023)
+        #     """
+        #     C = 0.75
+        #     reff   = rmax/2.1626  # NOTE: from the lines just after Eq. (1.1) of Yang et al. (2023)
+        #     rhoeff = (Vmax/(1.648*reff))**2/self.G  # NOTE: from the lines just after Eq. (1.1) of Yang et al. (2023)
+        #     t_c = 150/C/(sigma_eff_m*rhoeff*reff)/np.sqrt(4.*np.pi*self.G*rhoeff)
+        #     return t_c
 
         # For the concentration parameter
         x1,w1        = hermgauss(N_herm)
@@ -1436,7 +1436,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             # NOTE: shape = (len(z_ba)+len(zcalc)-1,len(ma200_z0)) = (199,N_ma) = (199,500) (for default values)
             Vmax_CDM         = np.concatenate((Vmax_ba,Vmax_aa[:,1:]),axis=1)
             rmax_CDM         = np.concatenate((rmax_ba,rmax_aa[:,1:]),axis=1)
-            t_c              = t_collapse(self.sigma_eff_m(Vmax_CDM),rmax_CDM,Vmax_CDM)
+            t_c              = self.t_collapse(self.sigma_eff_m(Vmax_CDM),rmax_CDM,Vmax_CDM)
 
             tt_ratio[iz]     = ((self.t_U-t_f)/t_c)[:,-1]
 
