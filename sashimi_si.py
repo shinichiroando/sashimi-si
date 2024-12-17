@@ -636,7 +636,9 @@ class TidalStrippingSolver(halo_model):
         -----
         Input
         -----
-        M0: Mass of the host halo defined as M_{200} (200 times critial density) at a given redshift.
+        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
+            Note that this is *not* the host mass at any given redshift! It can be obtained
+            via Mzi(M0,redshift). 
         (Optional) z_min:          Minimum redshift to end the calculation of evolution to. (default: 0.)
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
         (Optional) n_z_interp:     Number of redshifts to calculate epsilon functions. (default: 64)
