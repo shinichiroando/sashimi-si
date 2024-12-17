@@ -637,11 +637,9 @@ class TidalStrippingSolver(halo_model):
         Input
         -----
         M0: Mass of the host halo defined as M_{200} (200 times critial density) at a given redshift.
-
         (Optional) z_min:          Minimum redshift to end the calculation of evolution to. (default: 0.)
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
         (Optional) n_z_interp:     Number of redshifts to calculate epsilon functions. (default: 64)
-        (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         """
         halo_model.__init__(self)
         self.z_min       = z_min
