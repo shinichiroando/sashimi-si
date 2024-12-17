@@ -630,16 +630,13 @@ class SIDM_parametric_model(SIDM_cross_section):
 class TidalStrippingSolver(halo_model):
     """ Solve the tidal stripping equation for a given subhalo. """
     
-    def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, M0_at_redshift=False):
+    def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64):
         """ Initial function of the class. 
         
         -----
         Input
         -----
-        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
-            Note that this is *not* the host mass at the given redshift! It can be obtained
-            via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
-            redshift, then turn 'M0_at_redshift' parameter on (see below).
+        M0: Mass of the host halo defined as M_{200} (200 times critial density) at a given redshift.
 
         (Optional) z_min:          Minimum redshift to end the calculation of evolution to. (default: 0.)
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
@@ -647,15 +644,10 @@ class TidalStrippingSolver(halo_model):
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         """
         halo_model.__init__(self)
-        if M0_at_redshift:
-            Mz        = M0
-            M0_list   = np.logspace(0.,3.,1000)*Mz
-            fint      = interp1d(self.Mzi(M0_list,z_min),M0_list)
-            M0        = fint(Mz)
-        self.z_min = z_min
-        self.z_max     = z_max
-        self.n_z_interp      = n_z_interp
-        self.M0       = M0
+        self.z_min       = z_min
+        self.z_max       = z_max
+        self.n_z_interp  = n_z_interp
+        self.M0          = M0
 
 
     @property
@@ -1299,7 +1291,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
                 ma_0[i]    = fint_ma(ma_z0[i])
             
         z_f           = -0.0064*(np.log10(ma_0/self.Msun))**2+0.0237*np.log10(ma_0/self.Msun)+1.8837  # z_f.shape = (N_ma,)
-        t_f           = (self.t_U-self.lookback_time(z_f)) #/2.  # t_f.shape = (N_ma,)
+        t_f           = self.t_U-self.lookback_time(z_f) #/2.  # t_f.shape = (N_ma,)
         # NOTE: For the integral approach, we take the formation time tf to be half of t_U-t_f.
         #       Ref: Sec. 5 of Yang et al. (2023)
         # NOTE: For a more careful examination, this extra factor of 1/2 has been removed.
@@ -1365,8 +1357,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             M0=M0,
             z_min=redshift,
             z_max=zmax,
-            n_z_interp=64,
-            M0_at_redshift=M0_at_redshift,
+            n_z_interp=64
         )
         
         # def t_collapse(sigma_eff_m, rmax, Vmax):
