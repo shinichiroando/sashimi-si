@@ -417,7 +417,7 @@ class SIDM_parametric_model(SIDM_cross_section):
         sigma_eff_m : float
             The effective cross section of SIDM divided by m.
         """
-        return self.sigma_eff_analytical(self, self.sigma0_m, self.w, Vmax)
+        return self.sigma_eff_analytical(self.sigma0_m, self.w, Vmax)
 
 
     def t_collapse(self, sigma_eff_m, rmax, Vmax):
