@@ -331,7 +331,7 @@ class SIDM_cross_section(units_and_constants):
         return f_int
     
 
-    def sigma_eff_analytical(self,sigma0_m, w, Vmax, 
+    def sigma_eff_m_analytical(self,sigma0_m, w, Vmax, 
                              a_threshold=703.,
                              degree=6):
         """
@@ -376,10 +376,11 @@ class SIDM_cross_section(units_and_constants):
         expr = - sigma0_m * a**2 * ( np.exp(a) * (1 + a) * special.expi(-a) + 1 )
         # For a > a_threshold, return sigma0_m (i.e., effective cross section converges to sigma0_m)
         # sigma_eff_asymp = sigma0_m * (1 - 4/a + 18/a**2 - 96/a**3 + 600/a**4 - 4320/a**5)  # + (-1)^k(k+1)!(k+1)/a^k + ...
+        # sigma_eff_asymp = sigma0_m  # Asymptotic behavior for large a
         # NOTE: instead, we use Polynomial expansion for large a
         coeff = [(-1)**k * special.factorial(k+1)*(k + 1) for k in range(degree + 1)]
-        sigma_eff_asymp = np.polynomial.Polynomial(coeff)
-        sigma_eff = np.where(a > a_threshold, sigma0_m *sigma_eff_asymp(1/a), expr)
+        sigma_eff_asymp = sigma0_m * np.polynomial.Polynomial(coeff)(1/a)  # Evaluate the polynomial at 1/a
+        sigma_eff = np.where(a > a_threshold, sigma_eff_asymp, expr)
         return sigma_eff
 
 
@@ -410,6 +411,12 @@ class SIDM_parametric_model(SIDM_cross_section):
         self.w             = w*self.km/self.s
         # self.sigma_eff_m   = self.sigma_eff_m_interpolate(self.sigma0_m,self.w)
         self.tt_th         = tt_th
+        # interpolate sigma_eff_m
+        Vmax_dummy = np.logspace(-5.,3.,1000)*self.km/self.s
+        self._sigma_eff_m = interp1d(
+            x=Vmax_dummy, 
+            y=self.sigma_eff_m_analytical(self.sigma0_m, self.w, Vmax_dummy)
+        )
 
 
     def sigma_eff_m(self, Vmax):
@@ -425,7 +432,8 @@ class SIDM_parametric_model(SIDM_cross_section):
         sigma_eff_m : float
             The effective cross section of SIDM divided by m.
         """
-        return self.sigma_eff_analytical(self.sigma0_m, self.w, Vmax)
+        # return self.sigma_eff_analytical(self.sigma0_m, self.w, Vmax)
+        return self._sigma_eff_m(Vmax)
 
 
     def t_collapse(self, sigma_eff_m, rmax, Vmax):
