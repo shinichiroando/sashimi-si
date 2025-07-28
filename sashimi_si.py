@@ -362,7 +362,7 @@ class SIDM_cross_section(units_and_constants):
             (Default is 703., based on that Ei(-a) returns NaN for such large a.)
         degree : int, optional
             The degree of the polynomial expansion used for large a.
-            (Default is 5, which gives a good approximation for large a.)
+            (Default is 6, which gives a good approximation for large a.)
         Returns
         -------
         sigma_eff : float or np.ndarray
