@@ -331,7 +331,7 @@ class SIDM_cross_section(units_and_constants):
         return f_int
     
 
-    def sigma_eff_m_analytical(self,sigma0_m, w, Vmax, 
+    def sigma_eff_m_interpolate_analytical(self,sigma0_m, w,
                              a_threshold=703.,
                              degree=6):
         """
@@ -355,8 +355,6 @@ class SIDM_cross_section(units_and_constants):
             The value of sigma_0 / m.
         w : float
             The value of w (in the same units as used in the numerical methods).
-        Vmax : float or np.ndarray
-            The maximum circular velocity.
         a_threshold : float, optional
             The threshold for a above which sigma_eff is set to sigma0_m.
             (Default is 703., based on that Ei(-a) returns NaN for such large a.)
@@ -368,6 +366,9 @@ class SIDM_cross_section(units_and_constants):
         sigma_eff : float or np.ndarray
             The effective cross section of SIDM divided by m.
         """
+        # dummy Vmax for the interpolation
+        Vmax = np.logspace(-5.,3.,1000)*self.km/self.s
+        # Compute the effective velocity dispersion
         nu_eff = 0.64 * Vmax
         a = w**2 / (4 * nu_eff**2)
         # Compute the expression based on the analytic result:
@@ -381,9 +382,9 @@ class SIDM_cross_section(units_and_constants):
         coeff = [(-1)**k * special.factorial(k+1)*(k + 1) for k in range(degree + 1)]
         sigma_eff_asymp = sigma0_m * np.polynomial.Polynomial(coeff)(1/a)  # Evaluate the polynomial at 1/a
         sigma_eff = np.where(a > a_threshold, sigma_eff_asymp, expr)
-        return sigma_eff
-
-
+        # Interpolate the result to create a function that can be evaluated at any Vmax
+        f_int = interp1d(Vmax, sigma_eff)
+        return f_int
 
 
 
@@ -409,31 +410,8 @@ class SIDM_parametric_model(SIDM_cross_section):
         SIDM_cross_section.__init__(self)
         self.sigma0_m      = sigma0_m*self.cm**2/self.gram
         self.w             = w*self.km/self.s
-        # self.sigma_eff_m   = self.sigma_eff_m_interpolate(self.sigma0_m,self.w)
+        self.sigma_eff_m   = self.sigma_eff_m_interpolate_analytical(self.sigma0_m, self.w)
         self.tt_th         = tt_th
-        # interpolate sigma_eff_m
-        Vmax_dummy = np.logspace(-5.,3.,1000)*self.km/self.s
-        self._sigma_eff_m = interp1d(
-            x=Vmax_dummy, 
-            y=self.sigma_eff_m_analytical(self.sigma0_m, self.w, Vmax_dummy)
-        )
-
-
-    def sigma_eff_m(self, Vmax):
-        """ Returns the effective cross section of SIDM divided by m.
-
-        Parameters
-        ---
-        Vmax : float
-            The maximum circular velocity.
-
-        Returns
-        ---
-        sigma_eff_m : float
-            The effective cross section of SIDM divided by m.
-        """
-        # return self.sigma_eff_analytical(self.sigma0_m, self.w, Vmax)
-        return self._sigma_eff_m(Vmax)
 
 
     def t_collapse(self, sigma_eff_m, rmax, Vmax):
