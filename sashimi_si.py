@@ -331,7 +331,9 @@ class SIDM_cross_section(units_and_constants):
         return f_int
     
 
-    def sigma_eff_analytical(self,sigma0_m, w, Vmax, a_threshold=703):
+    def sigma_eff_analytical(self,sigma0_m, w, Vmax, 
+                             a_threshold=703.,
+                             degree=6):
         """
         Returns the analytic evaluation of the effective cross section of SIDM divided by m,
         simplified via the substitution
@@ -357,8 +359,10 @@ class SIDM_cross_section(units_and_constants):
             The maximum circular velocity.
         a_threshold : float, optional
             The threshold for a above which sigma_eff is set to sigma0_m.
-            (Default is 703.)
-        
+            (Default is 703., based on that Ei(-a) returns NaN for such large a.)
+        degree : int, optional
+            The degree of the polynomial expansion used for large a.
+            (Default is 5, which gives a good approximation for large a.)
         Returns
         -------
         sigma_eff : float or np.ndarray
@@ -371,7 +375,11 @@ class SIDM_cross_section(units_and_constants):
         # special.expi(-a) returns Ei(-a)
         expr = - sigma0_m * a**2 * ( np.exp(a) * (1 + a) * special.expi(-a) + 1 )
         # For a > a_threshold, return sigma0_m (i.e., effective cross section converges to sigma0_m)
-        sigma_eff = np.where(a > a_threshold, sigma0_m, expr)
+        # sigma_eff_asymp = sigma0_m * (1 - 4/a + 18/a**2 - 96/a**3 + 600/a**4 - 4320/a**5)  # + (-1)^k(k+1)!(k+1)/a^k + ...
+        # NOTE: instead, we use Polynomial expansion for large a
+        coeff = [(-1)**k * special.factorial(k+1)*(k + 1) for k in range(degree + 1)]
+        sigma_eff_asymp = np.polynomial.Polynomial(coeff)
+        sigma_eff = np.where(a > a_threshold, sigma0_m *sigma_eff_asymp(1/a), expr)
         return sigma_eff
 
 
