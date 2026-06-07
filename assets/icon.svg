@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-22.4 -30.0 260.0 260.0">
+<path d="M140.0,51.6 L144.5,83.3 L160.8,64.1 L152.2,87.8 L175.9,79.2 L156.7,95.5 L188.4,100.0 L156.7,104.5 L175.9,120.8 L152.2,112.2 L160.8,135.9 L144.5,116.7 L140.0,148.4 L135.5,116.7 L119.2,135.9 L127.8,112.2 L104.1,120.8 L123.3,104.5 L91.6,100.0 L123.3,95.5 L104.1,79.2 L127.8,87.8 L119.2,64.1 L135.5,83.3 Z" fill="#7e8d99" stroke="#1b2a3a" stroke-width="1.21" stroke-linejoin="round"/>
+<path d="M28.0,91.7 L3.3,82.1 L15.3,100.0 L3.3,117.9 L28.0,108.3" fill="none" stroke="#1b2a3a" stroke-width="5.75" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="76" cy="100" r="46" fill="#ffffff" stroke="#1b2a3a" stroke-width="5.75"/>
+<circle cx="70.5" cy="99.1" r="7.4" fill="#0d1117"/>
+<circle cx="85.2" cy="110.1" r="4.4" fill="#0d1117"/>
+<circle cx="60.4" cy="112.0" r="3.9" fill="#0d1117"/>
+<circle cx="76.9" cy="86.2" r="3.4" fill="#0d1117"/>
+<circle cx="54.8" cy="95.4" r="2.8" fill="#0d1117"/>
+<circle cx="91.6" cy="98.2" r="2.4" fill="#0d1117"/>
+<circle cx="67.7" cy="123.0" r="2.3" fill="#0d1117"/>
+<circle cx="86.1" cy="121.2" r="2.1" fill="#0d1117"/>
+<circle cx="74.2" cy="110.1" r="2.1" fill="#0d1117"/>
+<circle cx="94.4" cy="113.8" r="1.8" fill="#0d1117"/>
+<circle cx="62.2" cy="86.2" r="2.3" fill="#0d1117"/>
+<circle cx="80.6" cy="94.5" r="2.1" fill="#0d1117"/>
+<circle cx="97.2" cy="104.6" r="1.7" fill="#0d1117"/>
+<circle cx="99.0" cy="83.4" r="5.2" fill="#0d1117"/>
+<path d="M252.0,91.7 L276.7,82.1 L264.7,100.0 L276.7,117.9 L252.0,108.3" fill="none" stroke="#1b2a3a" stroke-width="5.75" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="204" cy="100" r="46" fill="#ffffff" stroke="#1b2a3a" stroke-width="5.75"/>
+<circle cx="209.5" cy="99.1" r="7.4" fill="#0d1117"/>
+<circle cx="194.8" cy="110.1" r="4.4" fill="#0d1117"/>
+<circle cx="219.6" cy="112.0" r="3.9" fill="#0d1117"/>
+<circle cx="203.1" cy="86.2" r="3.4" fill="#0d1117"/>
+<circle cx="225.2" cy="95.4" r="2.8" fill="#0d1117"/>
+<circle cx="188.4" cy="98.2" r="2.4" fill="#0d1117"/>
+<circle cx="212.3" cy="123.0" r="2.3" fill="#0d1117"/>
+<circle cx="193.9" cy="121.2" r="2.1" fill="#0d1117"/>
+<circle cx="205.8" cy="110.1" r="2.1" fill="#0d1117"/>
+<circle cx="185.6" cy="113.8" r="1.8" fill="#0d1117"/>
+<circle cx="217.8" cy="86.2" r="2.3" fill="#0d1117"/>
+<circle cx="199.4" cy="94.5" r="2.1" fill="#0d1117"/>
+<circle cx="182.8" cy="104.6" r="1.7" fill="#0d1117"/>
+<circle cx="181.0" cy="83.4" r="5.2" fill="#0d1117"/>
+</svg>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="SASHIMI-SIDM logo" width="440">
+</p>
+
 # Semi-Analytical SubHalo Inference ModelIng for Self-Interacting Dark Matter (SASHIMI-SIDM)
 [![arXiv](https://img.shields.io/badge/arXiv-2403.16633%20-green.svg)](https://arxiv.org/abs/2403.16633)
 
