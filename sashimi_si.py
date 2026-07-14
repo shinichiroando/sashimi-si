@@ -71,7 +71,7 @@ class cosmology(units_and_constants):
     def dDdz(self, z):
         def dOdz(z):
             return -self.OmegaL*3*self.OmegaM*(1+z)**2*(self.OmegaL+self.OmegaM*(1+z)**3.)**-2
-        Omega_Lz = self.OmegaL*pow(self.OmegaL+self.OmegaM*pow(self.h,-2)*pow(1+z,3),-1)
+        Omega_Lz = self.OmegaL/(self.OmegaL+self.OmegaM*(1+z)**3)
         Omega_Mz = 1-Omega_Lz
         phiz     = Omega_Mz**(4./7.)-Omega_Lz+(1+Omega_Mz/2.)*(1+Omega_Lz/70.)
         phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1+self.OmegaM/2.)*(1+self.OmegaL/70.)
@@ -323,8 +323,8 @@ class SIDM_cross_section(units_and_constants):
         veff2 = np.expand_dims(veff,axis=-1)
         costheta = np.linspace(-1.,1.,100)
         integrand = self.dsigmadcostheta(sigma0_m,w,v2,costheta)*v2**7*(1.-costheta**2)*np.exp(-v2**2/(4.*veff2**2))
-        integrand2 = integrate.simps(integrand,x=costheta,axis=-1)
-        sigma_eff_m = integrate.simps(integrand2,x=v,axis=0)
+        integrand2 = integrate.simpson(integrand,x=costheta,axis=-1)
+        sigma_eff_m = integrate.simpson(integrand2,x=v,axis=0)
         sigma_eff_m = sigma_eff_m/(512.*veff**8)
 
         f_int = interp1d(Vmax_dummy,sigma_eff_m)
@@ -438,15 +438,15 @@ class SIDM_parametric_model(SIDM_cross_section):
         return t_c
 
 
-    def dVmaxSIDMdtt(self, tt, Vmax0):
-        """ Returns differential of Vmax obtained by Eq. (2.4) of Yang et al. (2023)
+    def dVmaxSIDMdtt(self, tt, Vmax_CDM):
+        """ Returns differential of Vmax obtained by the equation just below Eq. (3.3) of Yang et al. (2023)
 
         Parameters
         ---
         tt : float
             The time normalized by the collapse time.
-        Vmax0 : float
-            The maximum circular velocity of the initial NFW profile.
+        Vmax_CDM : float
+            The maximum circular velocity of the CDM halo, evaluated at the same time as tt.
 
         Returns
         ---
@@ -455,26 +455,28 @@ class SIDM_parametric_model(SIDM_cross_section):
 
         Notes
         ---
-        - In the integral approach, Vmax0 and rmax0 in eq. (2.4) have been replaced by Vmax_{CDM}(t) and rmax_{CDM}(t), respectively.
+        - In the integral approach, dVmax_{Model}/dtt is normalized by Vmax_{CDM}(t), i.e. the CDM value
+          at the running time t of the integral, not the one at the accretion time t_f.
         """
-        out = 0.1777-4.399*(3.*tt**2)+16.66*(4.*tt**3)-18.87*(5.*tt**4)+9.044*(7.*tt**6)-2.436*(9.*tt**8)
+        out = 0.1777-4.399*(3.*tt**2)+16.66*(4.*tt**3)-18.87*(5.*tt**4)+9.077*(7.*tt**6)-2.436*(9.*tt**8)
         out = np.where(tt>self.tt_th,0.,out)
-        out = Vmax0*out
+        out = Vmax_CDM*out
         return out
 
 
-    def dVmaxSIDMdtt_numexpr_optimized(self, tt, Vmax0):
+    def dVmaxSIDMdtt_numexpr_optimized(self, tt, Vmax_CDM):
         """
-        Returns differential of Vmax obtained by Eq. (2.4) of Yang et al. (2023) using NumExpr for optimization.
+        Returns differential of Vmax obtained by the equation just below Eq. (3.3) of Yang et al. (2023),
+        using NumExpr for optimization.
         This optimized version performs the entire calculation in a single evaluation for maximum speed.
-        
+
         Parameters
         ---
         tt : np.ndarray
             The time normalized by the collapse time.
-        Vmax0 : np.ndarray or float
-            The maximum circular velocity of the initial NFW profile.
-            
+        Vmax_CDM : np.ndarray or float
+            The maximum circular velocity of the CDM halo, evaluated at the same time as tt.
+
         Returns
         ---
         out : np.ndarray
@@ -483,21 +485,22 @@ class SIDM_parametric_model(SIDM_cross_section):
         tt_th = self.tt_th
         out = ne.evaluate(
             "where(tt <= tt_th, (0.1777 - 13.197*tt*tt + 66.64*tt*tt*tt"
-            " - 94.35*tt*tt*tt*tt + 63.308*tt*tt*tt*tt*tt*tt"
-            " - 21.924*tt*tt*tt*tt*tt*tt*tt*tt) * Vmax0, 0)"
+            " - 94.35*tt*tt*tt*tt + 63.539*tt*tt*tt*tt*tt*tt"
+            " - 21.924*tt*tt*tt*tt*tt*tt*tt*tt) * Vmax_CDM, 0)"
         )
         return out
 
 
-    def drmaxSIDMdtt(self, tt, rmax0):
-        """ Returns differential of rmax obtained by in Eq. (2.4) of Yang et al. (2023)
+    def drmaxSIDMdtt(self, tt, rmax_CDM):
+        """ Returns differential of rmax obtained by the equation just below Eq. (3.3) of Yang et al. (2023)
 
         Parameters
         ---
         tt : float
             The time normalized by the collapse time.
-        rmax0 : float
-            The radius at which the maximum circular velocity is obtained.
+        rmax_CDM : float
+            The radius at which the maximum circular velocity of the CDM halo is obtained,
+            evaluated at the same time as tt.
 
         Returns
         ---
@@ -506,28 +509,29 @@ class SIDM_parametric_model(SIDM_cross_section):
 
         Notes
         ---
-        - In the integral approach, Vmax0 and rmax0 in eq. (2.4) have been replaced by Vmax_{CDM}(t) and rmax_{CDM}(t), respectively.
+        - In the integral approach, drmax_{Model}/dtt is normalized by rmax_{CDM}(t), i.e. the CDM value
+          at the running time t of the integral, not the one at the accretion time t_f.
         """
         out = 0.007623-0.7200*(2.*tt)+0.3376*(3.*tt**2)-0.1375*(4.*tt**3)
         out = np.where(tt>self.tt_th,0.,out)
-        out = rmax0*out
+        out = rmax_CDM*out
         return out
-    
 
-    def drmaxSIDMdtt_numexpr_optimized(self, tt, rmax0):
+
+    def drmaxSIDMdtt_numexpr_optimized(self, tt, rmax_CDM):
         """
-        Returns differential of rmax obtained by Eq. (2.4) of Yang et al. (2023) using NumExpr for optimization.
+        Returns differential of rmax obtained by the equation just below Eq. (3.3) of Yang et al. (2023),
+        using NumExpr for optimization.
         This optimized version performs the entire calculation in a single evaluation for maximum speed.
-        
+
         Parameters
         ---
         tt : np.ndarray
             The time normalized by the collapse time.
-        rmax0 : np.ndarray or float
-            The radius at which the maximum circular velocity is obtained.
-        tt_th : float
-            Threshold time.
-            
+        rmax_CDM : np.ndarray or float
+            The radius at which the maximum circular velocity of the CDM halo is obtained,
+            evaluated at the same time as tt.
+
         Returns
         ---
         out : np.ndarray
@@ -535,7 +539,7 @@ class SIDM_parametric_model(SIDM_cross_section):
         """
         tt_th = self.tt_th
         out = ne.evaluate(
-            "where(tt <= tt_th, (0.007623 - 1.44*tt + 1.0128*tt*tt - 0.55*tt*tt*tt) * rmax0, 0)"
+            "where(tt <= tt_th, (0.007623 - 1.44*tt + 1.0128*tt*tt - 0.55*tt*tt*tt) * rmax_CDM, 0)"
         )
         return out
 
@@ -641,11 +645,13 @@ class SIDM_parametric_model(SIDM_cross_section):
         Parameters
         ---
         Vmax_CDM : float
-            The maximum circular velocity of the CDM halo.
+            The maximum circular velocity of the CDM halo, as a function of time (axis 1).
         rmax_CDM : float
-            The radius at which the maximum circular velocity is obtained.
+            The radius at which the maximum circular velocity is obtained, as a function of time (axis 1).
         t : float
-            The time.
+            The time, running from the accretion time t_f to the time of observation.
+        t_f : float
+            The accretion (formation) time of the subhalo, i.e. the lower end of the integral in Eq. (3.3).
 
         Returns
         ---
@@ -660,13 +666,14 @@ class SIDM_parametric_model(SIDM_cross_section):
         rcSIDM_z0 : float
             The core radius of the SIDM halo at z=0.
         """
+        # NOTE: In the equation just below Eq. (3.3) of Yang et al. (2023), dVmax_{Model}/dtt and
+        # drmax_{Model}/dtt are normalized by Vmax_{CDM}(t) and rmax_{CDM}(t) evaluated at the running
+        # time t of the integral, not by their values at the accretion time t_f.
         t_c         = self.t_collapse(self.sigma_eff_m(Vmax_CDM),rmax_CDM,Vmax_CDM)
-        Vmax0       = np.expand_dims(Vmax_CDM[:,0],axis=1)
-        integrand   = self.dVmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,Vmax0)/t_c
-        VmaxSIDM_z0 = Vmax_CDM[:,-1]+integrate.simps(integrand,x=t*np.ones((len(Vmax_CDM),1,1)),axis=1)
-        rmax0       = np.expand_dims(rmax_CDM[:,0],axis=1)
-        integrand   = self.drmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,rmax0)/t_c
-        rmaxSIDM_z0 = rmax_CDM[:,-1]+integrate.simps(integrand,x=t*np.ones((len(rmax_CDM),1,1)),axis=1)
+        integrand   = self.dVmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,Vmax_CDM)/t_c
+        VmaxSIDM_z0 = Vmax_CDM[:,-1]+integrate.simpson(integrand,x=t*np.ones((len(Vmax_CDM),1,1)),axis=1)
+        integrand   = self.drmaxSIDMdtt_numexpr_optimized((t-t_f)/t_c,rmax_CDM)/t_c
+        rmaxSIDM_z0 = rmax_CDM[:,-1]+integrate.simpson(integrand,x=t*np.ones((len(rmax_CDM),1,1)),axis=1)
         
         tt             = np.minimum(((t-t_f)/t_c)[:,-1],self.tt_th)
         Vmax0_CDM_fict = self.get_Vmax0(VmaxSIDM_z0,tt)
@@ -1097,18 +1104,21 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
             The value of sigma_0 / m in units of cm^2/g.
         w : float
             The value of w in unit of km/s.
-        z_f : float
-            The formation redshift (default: 10)
         beta : float
-            The power index of the density profile.
+            The power index of the density profile in Eq. (2.1) of Yang et al. (2023).
+        tt_th : float
+            The threshold of tt = (t-t_f)/t_c beyond which the SIDM evolution is truncated,
+            since the parametric model is calibrated only up to tt ~ 1.
         """
         halo_model.__init__(self)
         self.param_model   = SIDM_parametric_model(sigma0_m, w, tt_th)
-        sidm_cs            = SIDM_cross_section()
 
         self.sigma0_m      = sigma0_m*self.cm**2/self.gram
         self.w             = w*self.km/self.s
-        self.sigma_eff_m   = sidm_cs.sigma_eff_m_interpolate(self.sigma0_m,self.w)
+        # NOTE: Share the very same sigma_eff/m as param_model, so that the collapse time t_c used for
+        #       the returned diagnostic tt_ratio is identical to the one driving the SIDM evolution
+        #       inside master_function.
+        self.sigma_eff_m   = self.param_model.sigma_eff_m
 
         self.beta          = beta
 
@@ -1319,10 +1329,10 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
 
         _zmax              = np.linspace(redshift,10.,1001)
         z_dummy            = np.linspace(redshift,_zmax,1000)
-        t_L                = integrate.simps(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy,axis=0)
+        t_L                = integrate.simpson(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy,axis=0)
         self.lookback_time = interp1d(_zmax,t_L)
         z_dummy            = np.linspace(redshift,1000,10000)
-        self.t_U           = integrate.simps(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy)
+        self.t_U           = integrate.simpson(1./(self.Hubble(z_dummy)*(1.+z_dummy)),x=z_dummy)
         del z_dummy, _zmax, t_L
 
         zdist         = np.arange(redshift+dz,zmax+dz,dz)  # zdist.shape = (n_z,)
@@ -1502,7 +1512,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
 
         Na           = self.Na_calc(ma_matrix,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
-        Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma_matrix)),x=np.log(1+zdist))
+        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma_matrix)),x=np.log(1+zdist))
         weightCDM    = Na/(1.+zdist.reshape(-1,1))
         weightCDM    = weightCDM/np.sum(weightCDM)*Na_total
         weightCDM    = np.expand_dims(weightCDM,axis=1)*(w1.reshape(-1,1))/np.sqrt(np.pi)
