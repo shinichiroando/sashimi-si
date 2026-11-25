@@ -26,6 +26,18 @@ Please send enquiries to Shin'ichiro Ando (s.ando@uva.nl). We have checked that 
 - SASHIMI is not limited to Poisson shot noise that inevitably accompanies when one has to count subhalos like in the case of numerical simulations.
 - One can adopt both velocity-independent and velocity-dependent scattering cross sections of SIDM. For the latter, so far, the Rutherford-like scattering is used but this can be easily extended for a different type of interaction.
 
+## Tidal mass loss
+
+The catalogue uses `method="picard"` to compute the full bound-mass history
+needed by the SIDM evolution integral. Pass `method="pert2_shanks"` to
+reproduce the previous default.
+Picard integrates the native stripping equation
+from accretion to observation using three nonlinear updates. A fourth update
+checks iteration convergence. Quadrature and interpolation also contribute to
+the mass error. Picard covers `0 <= z <= za <= 7` and
+`-24 <= log10(ma/Mvir(za)) <= 3`. Outside these limits or when the iteration
+check fails, the solver issues a warning and directly integrates log mass.
+
 ## References
 
 When you use the outcome of this package for your scientific output, please cite the following publications.
