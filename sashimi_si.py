@@ -1,4 +1,5 @@
 import numpy as np
+from picard_tidal_stripping import cached_host_mass, history_mass
 from scipy import integrate
 from scipy import interpolate
 from scipy import optimize
@@ -770,7 +771,35 @@ class TidalStrippingSolver(halo_model):
         self.eps_33 = lambda _za, _z: self._eps_33_interp(_z) - self._eps_33_interp(_za)
 
 
-    def Mzvir(self,z):
+    def Mzvir(self, z):
+        """Return the host virial mass used by the tidal stripping rate.
+
+        Parameters
+        ----------
+        z : array_like
+            Dimensionless redshifts along the host history.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Host virial mass in native mass units, with the shape of z.
+        """
+        return cached_host_mass(self, z)
+
+
+    def _Mzvir_uncached(self, z):
+        """Convert the native M200 history anchored at z=0 to virial mass.
+
+        Parameters
+        ----------
+        z : array_like
+            Dimensionless redshifts at which to evaluate the host.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Virial mass in the same unit as the present-day host mass M0.
+        """
         Mz200 = self.Mzzi(self.M0,z,0.)
         Mvir = self.Mvir_from_M200_fit(Mz200,z)
         return Mvir
@@ -1023,19 +1052,19 @@ class TidalStrippingSolver(halo_model):
         return ma * np.exp(eps)
     
     
-    def subhalo_mass_stripped(self,ma,za,z,method="pert2_shanks",**kwargs):
+    def subhalo_mass_stripped(self,ma,za,z,method="picard",**kwargs):
         """ A wrapper function to calculate subhalo mass stripping.
         
         Parameters
         ----------
-        ma : float
-            initial subhalo mass.
+        ma : array_like
+            Subhalo virial mass at accretion, in the native host mass unit.
         za : float
-            initial redshift.
-        z : float
-            final redshift.
+            Accretion redshift.
+        z : float or 1-D array_like
+            Output redshift or a non-increasing sequence starting at or below za.
         method : str, optional
-            method to calculate the subhalo mass stripping.
+            - "picard" (default): integrate the full Picard mass history.
             - "odeint" : use odeint to solve the differential equation.
             - "pert0" : use perturbative method with zeroth-order correction.
             - "pert1" : use perturbative method with first-order correction.
@@ -1043,12 +1072,13 @@ class TidalStrippingSolver(halo_model):
             - "pert2_shanks" : use perturbative method with second-order correction and Shanks transformation.
             - "pert3" : use perturbative method with third-order correction.
         kwargs : dict, optional
-            additional arguments for the odeint function.
+            options forwarded to history_mass or odeint for the selected method.
 
         Returns
         -------
         float or np.ndarray
-            the mass of the subhalo
+            Bound mass in the input unit. A Picard history has shape
+            (len(z),) + shape(ma). A scalar epoch returns shape(ma).
         """
         # match method:
         #     case "odeint":
@@ -1066,6 +1096,8 @@ class TidalStrippingSolver(halo_model):
         #         return self.subhalo_mass_stripped_pert3(ma,za,z)
         #     case _:
         #         raise ValueError(f"Invalid method: {method}")
+        if method == "picard":
+            return history_mass(self, ma, za, z, **kwargs)
         if method == "odeint":
             # NOTE: odeint returns (len(z),len(ma)) array for array input.
             return self.subhalo_mass_stripped_odeint(ma,za,z,**kwargs)
@@ -1251,7 +1283,7 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
     def subhalo_properties_calc(self, M0, redshift=0.0, dz=0.01, zmax=5.0, N_ma=500, sigmalogc=0.128,
                                 N_herm=20, logmamin=6, logmamax=None, N_hermNa=200, Na_model=3, 
                                 ct_th=0., M0_at_redshift=False,
-                                method="pert2_shanks", **kwargs):
+                                method="picard", **kwargs):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog.
         
@@ -1282,8 +1314,8 @@ class subhalo_properties(halo_model, SIDM_parametric_model, SIDM_cross_section):
         (Optional) ct_th:          Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
                                    be completely desrupted. Suggested values: 0.77 or 0 (no desruption; default).
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
-        (Optional) kwargs:         Additional arguments for the odeint function.
+        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard")
+        (Optional) kwargs:         Options for the selected Picard or odeint solver.
         
         ------
         Output
