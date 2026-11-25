@@ -1077,8 +1077,9 @@ class TidalStrippingSolver(halo_model):
         Returns
         -------
         float or np.ndarray
-            Bound mass in the input unit. A Picard history has shape
-            (len(z),) + shape(ma). A scalar epoch returns shape(ma).
+            Bound mass in the input unit. Two scalar inputs ma and z return
+            a scalar. Otherwise Picard retains the time and mass axes, including
+            singleton axes, as in the upstream perturbative history interface.
         """
         # match method:
         #     case "odeint":
@@ -1097,7 +1098,9 @@ class TidalStrippingSolver(halo_model):
         #     case _:
         #         raise ValueError(f"Invalid method: {method}")
         if method == "picard":
-            return history_mass(self, ma, za, z, **kwargs)
+            if np.isscalar(ma) and np.isscalar(z):
+                return float(history_mass(self, ma, za, z, **kwargs))
+            return history_mass(self, np.atleast_1d(ma), za, np.atleast_1d(z), **kwargs)
         if method == "odeint":
             # NOTE: odeint returns (len(z),len(ma)) array for array input.
             return self.subhalo_mass_stripped_odeint(ma,za,z,**kwargs)

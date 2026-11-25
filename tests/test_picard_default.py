@@ -31,7 +31,7 @@ def test_default_mass_against_independent_integration():
         warnings.simplefilter("error", PicardFallbackWarning)
         result = solver.subhalo_mass_stripped(mass, za, epochs)
     np.testing.assert_allclose(result, reference, rtol=1e-3, atol=0.0)
-    np.testing.assert_array_equal(solver.subhalo_mass_stripped(mass, za, za), mass)
+    np.testing.assert_array_equal(solver.subhalo_mass_stripped(mass, za, [za]), mass[None, :])
 
 
 def test_guarded_fallback_and_input_domain():
@@ -49,9 +49,9 @@ def test_guarded_fallback_and_input_domain():
     ref = solver.subhalo_mass_stripped(mass, 2.8, 0.3, method="odeint", rtol=1e-10, atol=1e-11)
     with pytest.warns(PicardFallbackWarning, match="convergence"):
         result = solver.subhalo_mass_stripped(
-            mass, 2.8, 0.3, n_iterations=1, convergence_tolerance=1e-12
+            mass, 2.8, [0.3], n_iterations=1, convergence_tolerance=1e-12
         )
-    np.testing.assert_allclose(result, ref, rtol=1e-7, atol=0.0)
+    np.testing.assert_allclose(result, ref[None, :], rtol=1e-7, atol=0.0)
     with pytest.raises(ValueError):
         solver.subhalo_mass_stripped(mass, 0.3, 2.8)
 
@@ -107,3 +107,34 @@ def test_partial_history_keeps_epoch_and_mass_axes():
     assert result.shape == (len(times),) + mass.shape
     np.testing.assert_array_equal(result[1], result[2])
     np.testing.assert_allclose(result.reshape(reference.shape), reference, rtol=1e-3, atol=0.0)
+
+
+@pytest.mark.parametrize(
+    "mass, epoch, shape",
+    [
+        (1e8, 0.2, ()),
+        ([1e8, 1e9], 0.2, (1, 2)),
+        (1e8, [1.0, 0.2], (2, 1)),
+        (np.array(1e8), np.array(0.2), (1, 1)),
+    ],
+)
+def test_public_mass_and_epoch_axes(mass, epoch, shape):
+    """Preserve the public layout for callers indexing mass histories.
+
+    Parameters
+    ----------
+    mass : array_like
+        Accretion virial mass in solar masses.
+    epoch : array_like
+        Dimensionless observation redshift(s), following accretion at z=1.5.
+    shape : tuple of int
+        Expected shape for this combination of scalar and array inputs.
+
+    Notes
+    -----
+    The expected shapes reproduce the previous upstream default for scalar,
+    vector and zero-dimensional array inputs. Failure means an existing
+    index may select a different axis. Mass accuracy is tested separately.
+    """
+    solver = model.TidalStrippingSolver(1e12, z_max=1.5)
+    assert np.shape(solver.subhalo_mass_stripped(mass, 1.5, epoch)) == shape
